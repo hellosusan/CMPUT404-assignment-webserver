@@ -32,7 +32,45 @@ class MyWebServer(socketserver.BaseRequestHandler):
     def handle(self):
         self.data = self.request.recv(1024).strip()
         print ("Got a request of: %s\n" % self.data)
-        self.request.sendall(bytearray("OK",'utf-8'))
+        
+        decodedRequest = self.data.decode().split(' ')
+        
+        # The method and path of the request
+        method = decodedRequest[0]
+        path  = decodedRequest[1]
+        
+        # The relative path
+        # Normalize variable path to remove redundant separators (handle test_get_group)
+        relpath = './www' + os.path.normpath(path)
+        
+        if method == 'GET': 
+            # relpath exists and is the path of a directory
+            if os.path.isdir(relpath):
+                if path[-1] == '/':
+                    file = open(f'{relpath}/index.html', 'r')
+                    content = file.read()
+                    file.close()
+                    respond = f'HTTP/1.1 200 OK\r\nContent-Type: text/html\r\nContent-Length: {len(content)}\r\n\r\n{content}'
+                else:
+                    respond = f'HTTP/1.1 301 Move Permanently\r\nLocation: {path}/\r\n'
+            
+            # relpath exists and is the path of a file
+            elif os.path.isfile(relpath):
+                file = open(relpath, 'r')
+                content = file.read()
+                file.close()
+                contentType = path.split('.')[1]
+                respond = f'HTTP/1.1 200 OK\r\nContent-Type: text/{contentType}\r\nContent-Length: {len(content)}\r\n\r\n{content}'
+            
+            # relpath not exists 
+            else:
+                respond = 'HTTP/1.1 404 Not Found\r\n'
+        
+        # method is not GET: not support
+        else:
+            respond = 'HTTP/1.1 405 Method Not Allowed\r\n'
+        
+        self.request.sendall(bytearray(respond,'utf-8'))
 
 if __name__ == "__main__":
     HOST, PORT = "localhost", 8080
