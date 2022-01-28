@@ -37,7 +37,7 @@ class MyWebServer(socketserver.BaseRequestHandler):
         decodedRequest = self.data.decode().split(' ')
         
         try:
-            # The method and path of the request
+            # The path of the request
             path  = decodedRequest[1]
             
             # The relative path
